@@ -8,7 +8,7 @@ A browser-based HAR inspector for finding slow, heavy, and failed requests. Open
 
 ## Try it
 
-The workbench opens with a **synthetic 24-request capture**. Select **Failed requests** to find the 503 response, or sort by **Slowest first** to inspect `/api/activity`. Open your own `.har` file with the import control. The current capture remains intact if an import fails.
+The workbench opens with a **synthetic 24-request capture**. Select **Failed requests** to find the 503 response, or sort by **Slowest first** to inspect `/api/activity`. Open your own `.har` file with the import control. The current capture remains intact if an import fails. **Recorded capture** opens a real, reduced recording of the public portfolio; its two timing consistency warnings are documented in the [case study](docs/cases/portfolio.md).
 
 Files stay in memory in the current tab. There is no backend, analytics script, external font, or browser storage. Closing the tab clears the capture. Hosting providers still receive normal requests for the application itself.
 
@@ -22,7 +22,7 @@ npm run dev
 ```
 
 ```sh
-npm test        # 18 core tests
+npm test        # 28 tests
 npm run build  # TypeScript check + production bundle
 ```
 
@@ -47,11 +47,11 @@ The exported JSON is an analysis summary, not a reusable HAR. It omits cookies, 
 - Rejects malformed entries with their request number; no silent partial totals.
 - MIME-based resource classification, not browser initiator tracing.
 - Does not infer page-load causality, Core Web Vitals, or production recommendations from one capture.
-- Rendering is not virtualized. The request limit is a guardrail, not a claim that every device handles the maximum smoothly.
+- The list renders at most 200 rows per page. Search, sort, statistics and exports retain the full capture. Parsing is still on the main thread; see the [10,000-request experiment](docs/cases/stress.md) for measured results and limits.
 - Chromium UI checks cover import, malformed import, export, filtering, sorting, selection and a 390 px viewport. Cross-browser and assistive-technology audits remain open.
 
 ## Code map
 
-`src/model.ts` contains parsing and statistics without DOM dependencies. `src/main.ts` owns transient UI state and escaped rendering. `src/demo.ts` provides deterministic synthetic traffic. `tests/model.test.ts` covers measurement and input boundaries.
+`src/model.ts` contains parsing and statistics without DOM dependencies. `src/main.ts` owns transient UI state and escaped rendering. `src/demo.ts` provides deterministic synthetic traffic. `tests/model.test.ts` covers measurement and input boundaries; pagination and recorded-capture tests cover full-list reachability and actual recorder behavior.
 
 The [HAR specification](https://webperfwg.org/specs/HAR/Overview.html) is the reference for timing and size semantics. MIT licensed.

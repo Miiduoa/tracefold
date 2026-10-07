@@ -1,0 +1,83 @@
+{
+  "log": {
+    "version": "1.2",
+    "creator": {
+      "name": "Tracefold measurement fixture",
+      "version": "1"
+    },
+    "entries": [
+      {
+        "startedDateTime": "2026-10-07T15:26:08.134Z",
+        "time": 588.124,
+        "request": {
+          "method": "GET",
+          "url": "https://miiduoa.github.io/"
+        },
+        "response": {
+          "status": 200,
+          "bodySize": 7588,
+          "content": {
+            "mimeType": "text/html; charset=utf-8"
+          },
+          "_transferSize": 7588
+        },
+        "timings": {
+          "dns": 55.612,
+          "connect": 133.078,
+          "ssl": 77.554,
+          "send": 0,
+          "wait": 316.39,
+          "receive": 5.49
+        }
+      },
+      {
+        "startedDateTime": "2026-10-07T15:26:08.644Z",
+        "time": 635.435,
+        "request": {
+          "method": "GET",
+          "url": "https://raw.githubusercontent.com/Miiduoa/retail-ops-dss/main/docs/screenshots/01_forecast.png"
+        },
+        "response": {
+          "status": 200,
+          "bodySize": 81329,
+          "content": {
+            "mimeType": "image/png"
+          },
+          "_transferSize": 81329
+        },
+        "timings": {
+          "dns": 7.537,
+          "connect": 121.384,
+          "ssl": 63.467,
+          "send": 0,
+          "wait": 362.719,
+          "receive": 80.328
+        }
+      },
+      {
+        "startedDateTime": "2026-10-07T15:26:09.218Z",
+        "time": 312.829,
+        "request": {
+          "method": "GET",
+          "url": "https://miiduoa.github.io/favicon.svg"
+        },
+        "response": {
+          "status": 200,
+          "bodySize": 427,
+          "content": {
+            "mimeType": "image/svg+xml"
+          },
+          "_transferSize": 427
+        },
+        "timings": {
+          "dns": -1,
+          "connect": -1,
+          "ssl": -1,
+          "send": 0,
+          "wait": 312.479,
+          "receive": 0.35
+        }
+      }
+    ]
+  }
+}

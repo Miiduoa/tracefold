@@ -28,9 +28,9 @@ A cached zero-byte response is a measured zero. HAR's `-1` means unavailable. Un
 
 ## Rendering and scope
 
-A fixed-height scrollable request list keeps the workspace compact. Filtering leaves capture-level statistics unchanged; the result count makes the filtered subset explicit. Resource categories are inferred from MIME types. Multi-page captures share a single timeline.
+A fixed-height scrollable request list renders at most 200 rows per page. All matches are filtered and sorted before slicing; page state resets on import, search, category and sort changes. A live range and native Previous/Next buttons expose the full result set. Filtering leaves capture-level statistics unchanged; the result count makes the filtered subset explicit. Resource categories are inferred from MIME types. Multi-page captures share a single timeline.
 
-A worker and virtualized rows would be sensible next steps for large captures. Neither is implemented or claimed here. The present limit bounds input volume but does not establish a responsiveness benchmark.
+A worker remains an option for large-file parsing. The list now bounds DOM work through pagination; parsing and filtering still run on the main thread. The [stress experiment](cases/stress.md) records three local automation measurements per version and their limitations.
 
 ## Validation record
 

@@ -1,0 +1,28 @@
+{
+  "recordedAt": "2026-10-07T15:31:27.039Z",
+  "platform": "darwin",
+  "osRelease": "25.5.0",
+  "cpu": "Apple M5 Pro",
+  "node": "v26.8.2",
+  "fixtureSha256": "d637f2f2b90f5c0f48dca72a2f41b99ba7d81fbb06eccf3663908b9f1af72b95",
+  "method": "Automation-observed import and filter; includes protocol and locator overhead, not isolated JS execution.",
+  "browser": "155.0.8059.40",
+  "count": 10000,
+  "trials": [
+    {
+      "importMs": 399,
+      "filterMs": 5237,
+      "renderedRows": 10000
+    },
+    {
+      "importMs": 420,
+      "filterMs": 5164,
+      "renderedRows": 10000
+    },
+    {
+      "importMs": 415,
+      "filterMs": 5199,
+      "renderedRows": 10000
+    }
+  ]
+}

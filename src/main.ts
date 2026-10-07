@@ -7,6 +7,8 @@ import {
   type RequestRow,
 } from "./model.ts";
 import { demoHar } from "./demo.ts";
+import { requestPage } from "./pagination.ts";
+import recordedHar from "../tests/fixtures/portfolio.chromium.json";
 const app = document.querySelector<HTMLDivElement>("#app")!;
 const esc = (v: unknown) =>
   String(v).replace(
@@ -30,19 +32,20 @@ const size = (n: number | null) =>
       : `${(n / 1e3).toFixed(1)} kB`;
 let capture: Capture = parseHar(demoHar()),
   filename = "Workspace page load",
-  demo = true,
+  example: "synthetic" | "recorded" | null = "synthetic",
   selected = 13;
 let query = "",
   category = "all",
   sort = "start",
   error = "",
-  loadVersion = 0;
+  loadVersion = 0,
+  pageIndex = 0;
 app.innerHTML = `<header><a class="brand" href="./"><span class="mark" aria-hidden="true">≋</span>Tracefold</a><span class="header-note">NETWORK WORKBENCH</span><a href="https://github.com/Miiduoa/tracefold">Source code ↗</a></header>
-<main><section class="intro"><div><p class="eyebrow">HAR INSPECTOR</p><h1>Inspect a capture.<br><span>Find what slowed it down.</span></h1><p class="lede">Find the wait, the weight, and the requests that failed.</p></div><div class="import-box"><span class="local-label">LOCAL FILES · NO UPLOAD</span><label class="primary" for="file">Open HAR file <span aria-hidden="true">＋</span></label><input id="file" type="file" accept=".har,.json,application/json"><button id="demo" class="text-button">Load example capture</button><p>Export a HAR from your browser’s Network panel.<br>Up to 25 MB / 20,000 requests.</p></div></section>
+<main><section class="intro"><div><p class="eyebrow">HAR INSPECTOR</p><h1>Inspect a capture.<br><span>Find what slowed it down.</span></h1><p class="lede">Find the wait, the weight, and the requests that failed.</p></div><div class="import-box"><span class="local-label">LOCAL FILES · NO UPLOAD</span><label class="primary" for="file">Open HAR file <span aria-hidden="true">＋</span></label><input id="file" type="file" accept=".har,.json,application/json"><div class="example-actions"><button id="demo" class="text-button">Synthetic example</button><button id="recorded" class="text-button">Recorded capture</button></div><p>Export a HAR from your browser’s Network panel.<br>Up to 25 MB / 20,000 requests.</p></div></section>
 <div id="error" role="alert"></div><section aria-label="Capture statistics" id="stats" class="stats"></section>
 <section class="workbench"><div class="section-heading"><div><span class="eyebrow">01 / REQUEST WATERFALL</span><h2 id="capture-name"></h2></div><button id="export" class="secondary">Export summary</button></div>
 <div class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Filter path or host" aria-label="Filter path or host"></label><label class="sr-only" for="category">Request type</label><select id="category"><option value="all">All requests</option><option value="errors">Failed requests</option><option value="data">Fetch / data</option><option value="script">JavaScript</option><option value="image">Images</option><option value="style">Stylesheets</option><option value="font">Fonts</option><option value="document">Documents</option><option value="other">Other</option></select><label class="sr-only" for="sort">Sort order</label><select id="sort"><option value="start">Start time</option><option value="duration">Slowest first</option><option value="bytes">Largest first</option></select><span id="result-count"></span></div>
-<div class="workspace"><div class="request-pane"><div class="table-head"><span>REQUEST / STATUS</span><span>SIZE</span><span>DURATION / TIMELINE</span></div><div id="requests"></div></div><aside id="detail" aria-label="Request details"></aside></div>
+<div class="workspace"><div class="request-pane"><div class="table-head"><span>REQUEST / STATUS</span><span>SIZE</span><span>DURATION / TIMELINE</span></div><div id="requests"></div><nav class="pagination" aria-label="Request pages"><span id="page-status" aria-live="polite"></span><button id="previous-page" class="secondary">Previous</button><button id="next-page" class="secondary">Next</button></nav></div><aside id="detail" aria-label="Request details"></aside></div>
 <div class="legend"><span><i class="data"></i>Data</span><span><i class="script"></i>Script</span><span><i class="image"></i>Image</span><span><i class="style"></i>Style</span><span><i class="other"></i>Other</span><span>Timeline is relative to capture start.</span></div></section>
 <section class="bottom"><div><span class="eyebrow">02 / READING THIS CAPTURE</span><h2>Start with the outliers.</h2><div id="insights"></div></div><div class="privacy"><h3>Your capture stays here.</h3><p>Analysis runs in this tab. No account, analytics, or upload endpoint. Closing the tab clears the capture.</p><p>Summary exports omit headers, cookies, bodies, query strings and fragments. Hostnames and paths remain; review them before sharing.</p><details><summary>How the numbers work</summary><p>p95 uses nearest rank. Transfer uses the browser’s transfer size when available, otherwise encoded body size. Unknown sizes are excluded. TLS is part of connect time, never added twice. Capture span is not page load time.</p></details></div></section><footer><span>Tracefold / 0.1</span><span>Request timing · Transfer size · HTTP status</span><a href="https://github.com/Miiduoa/tracefold#readme">Documentation ↗</a></footer></main>`;
 function draw() {
@@ -66,7 +69,7 @@ function draw() {
     )
     .join("");
   document.querySelector("#capture-name")!.innerHTML =
-    `${esc(filename)} ${demo ? '<span class="badge">SYNTHETIC EXAMPLE</span>' : ""}`;
+    `${esc(filename)} ${example ? `<span class="badge">${example === "synthetic" ? "SYNTHETIC EXAMPLE" : "RECORDED EXAMPLE"}</span>` : ""}`;
   const slow = [...capture.rows].sort((a, b) => b.duration - a.duration)[0];
   const heavy = [...capture.rows]
     .filter((r) => r.bytes !== null)
@@ -94,9 +97,17 @@ function drawRows() {
   );
   document.querySelector("#result-count")!.textContent =
     `${rows.length} / ${capture.rows.length}`;
+  const current = requestPage(rows, pageIndex);
+  pageIndex = current.page;
+  document.querySelector("#page-status")!.textContent =
+    `${current.start}–${current.end} of ${rows.length} matches`;
+  (document.querySelector("#previous-page") as HTMLButtonElement).disabled =
+    current.page === 0;
+  (document.querySelector("#next-page") as HTMLButtonElement).disabled =
+    current.page === current.totalPages - 1;
   const span = Math.max(...capture.rows.map((r) => r.start + r.duration), 1);
   document.querySelector("#requests")!.innerHTML = rows.length
-    ? rows
+    ? current.rows
         .map(
           (r) =>
             `<button class="request ${r.id === selected ? "selected" : ""}" data-id="${r.id}" aria-pressed="${r.id === selected}"><span class="request-name"><span class="status ${r.status === 0 || r.status >= 400 ? "bad" : ""}">${r.status || "ERR"}</span><span><strong>${esc(r.path)}</strong><small>${esc(r.host)} · ${esc(r.method)}</small></span></span><span class="bytes">${size(r.bytes)}</span><span class="timeline"><span class="duration">${ms(r.duration)}</span><span class="track"><i class="${r.kind}" style="margin-left:${(r.start / span) * 100}%;width:${Math.max((r.duration / span) * 100, 0.25)}%"></i></span></span></button>`,
@@ -113,10 +124,20 @@ function drawRows() {
     document
       .querySelector<HTMLButtonElement>(`[data-id="${Number(focusedId)}"]`)
       ?.focus({ preventScroll: true });
-  const row = rows.find((r) => r.id === selected);
+  const row = current.rows.find((r) => r.id === selected);
   document.querySelector("#detail")!.innerHTML = row
     ? detail(row)
     : '<div class="detail-empty"><span class="eyebrow">REQUEST DETAIL</span><h3>Select a request</h3><p>Inspect timing phases and response details.</p></div>';
+}
+for (const [selector, delta] of [
+  ["#previous-page", -1],
+  ["#next-page", 1],
+] as const) {
+  document.querySelector(selector)!.addEventListener("click", () => {
+    pageIndex += delta;
+    drawRows();
+    document.querySelector("#requests")!.scrollTop = 0;
+  });
 }
 function detail(r: RequestRow) {
   const phases = [
@@ -132,21 +153,25 @@ function detail(r: RequestRow) {
 }
 document.querySelector("#search")!.addEventListener("input", (e) => {
   query = (e.target as HTMLInputElement).value;
+  pageIndex = 0;
   drawRows();
 });
 document.querySelector("#category")!.addEventListener("change", (e) => {
   category = (e.target as HTMLSelectElement).value;
+  pageIndex = 0;
   drawRows();
 });
 document.querySelector("#sort")!.addEventListener("change", (e) => {
   sort = (e.target as HTMLSelectElement).value;
+  pageIndex = 0;
   drawRows();
 });
-function reset(next: Capture, name: string, isDemo: boolean) {
+function reset(next: Capture, name: string, source: typeof example) {
   capture = next;
   filename = name;
-  demo = isDemo;
+  example = source;
   selected = next.rows[0].id;
+  pageIndex = 0;
   query = "";
   category = "all";
   sort = "start";
@@ -158,7 +183,11 @@ function reset(next: Capture, name: string, isDemo: boolean) {
 }
 document.querySelector("#demo")!.addEventListener("click", () => {
   loadVersion++;
-  reset(parseHar(demoHar()), "Workspace page load", true);
+  reset(parseHar(demoHar()), "Workspace page load", "synthetic");
+});
+document.querySelector("#recorded")!.addEventListener("click", () => {
+  loadVersion++;
+  reset(parseHar(recordedHar), "Portfolio · Oct 7, 2026", "recorded");
 });
 document.querySelector("#file")!.addEventListener("change", async (e) => {
   const input = e.target as HTMLInputElement,
@@ -170,7 +199,7 @@ document.querySelector("#file")!.addEventListener("change", async (e) => {
       throw new Error("Choose a HAR file smaller than 25 MB.");
     const text = await file.text();
     if (version !== loadVersion) return;
-    reset(parseHar(JSON.parse(text)), file.name, false);
+    reset(parseHar(JSON.parse(text)), file.name, null);
   } catch (err) {
     if (version === loadVersion) {
       error =
