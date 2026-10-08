@@ -33,49 +33,186 @@ const size = (n: number | null) =>
 let capture: Capture = parseHar(demoHar()),
   filename = "Workspace page load",
   example: "synthetic" | "recorded" | null = "synthetic",
-  selected = 13;
+  selected = 0;
 let query = "",
   category = "all",
   sort = "start",
   error = "",
   loadVersion = 0,
   pageIndex = 0;
-app.innerHTML = `<header><a class="brand" href="./"><span class="mark" aria-hidden="true">≋</span>Tracefold</a><span class="header-note">NETWORK WORKBENCH</span><a href="https://github.com/Miiduoa/tracefold">Source code ↗</a></header>
-<main><section class="intro"><div><p class="eyebrow">HAR INSPECTOR</p><h1>Inspect a capture.<br><span>Find what slowed it down.</span></h1><p class="lede">Find the wait, the weight, and the requests that failed.</p></div><div class="import-box"><span class="local-label">LOCAL FILES · NO UPLOAD</span><label class="primary" for="file">Open HAR file <span aria-hidden="true">＋</span></label><input id="file" type="file" accept=".har,.json,application/json"><div class="example-actions"><button id="demo" class="text-button">Synthetic example</button><button id="recorded" class="text-button">Recorded capture</button></div><p>Export a HAR from your browser’s Network panel.<br>Up to 25 MB / 20,000 requests.</p></div></section>
-<div id="error" role="alert"></div><section aria-label="Capture statistics" id="stats" class="stats"></section>
-<section class="workbench"><div class="section-heading"><div><span class="eyebrow">01 / REQUEST WATERFALL</span><h2 id="capture-name"></h2></div><button id="export" class="secondary">Export summary</button></div>
-<div class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Filter path or host" aria-label="Filter path or host"></label><label class="sr-only" for="category">Request type</label><select id="category"><option value="all">All requests</option><option value="errors">Failed requests</option><option value="data">Fetch / data</option><option value="script">JavaScript</option><option value="image">Images</option><option value="style">Stylesheets</option><option value="font">Fonts</option><option value="document">Documents</option><option value="other">Other</option></select><label class="sr-only" for="sort">Sort order</label><select id="sort"><option value="start">Start time</option><option value="duration">Slowest first</option><option value="bytes">Largest first</option></select><span id="result-count"></span></div>
-<div class="workspace"><div class="request-pane"><div class="table-head"><span>REQUEST / STATUS</span><span>SIZE</span><span>DURATION / TIMELINE</span></div><div id="requests"></div><nav class="pagination" aria-label="Request pages"><span id="page-status" aria-live="polite"></span><button id="previous-page" class="secondary">Previous</button><button id="next-page" class="secondary">Next</button></nav></div><aside id="detail" aria-label="Request details"></aside></div>
-<div class="legend"><span><i class="data"></i>Data</span><span><i class="script"></i>Script</span><span><i class="image"></i>Image</span><span><i class="style"></i>Style</span><span><i class="other"></i>Other</span><span>Timeline is relative to capture start.</span></div></section>
-<section class="bottom"><div><span class="eyebrow">02 / READING THIS CAPTURE</span><h2>Start with the outliers.</h2><div id="insights"></div></div><div class="privacy"><h3>Your capture stays here.</h3><p>Analysis runs in this tab. No account, analytics, or upload endpoint. Closing the tab clears the capture.</p><p>Summary exports omit headers, cookies, bodies, query strings and fragments. Hostnames and paths remain; review them before sharing.</p><details><summary>How the numbers work</summary><p>p95 uses nearest rank. Transfer uses the browser’s transfer size when available, otherwise encoded body size. Unknown sizes are excluded. TLS is part of connect time, never added twice. Capture span is not page load time.</p></details></div></section><footer><span>Tracefold / 0.1</span><span>Request timing · Transfer size · HTTP status</span><a href="https://github.com/Miiduoa/tracefold#readme">Documentation ↗</a></footer></main>`;
+app.innerHTML = /* HTML */ ` <header class="app-header">
+    <a class="brand" href="./">Tracefold</a
+    ><span class="app-label">HAR inspector</span
+    ><span class="local-note">Local analysis · no upload</span
+    ><a href="https://github.com/Miiduoa/tracefold">GitHub</a>
+  </header>
+  <main>
+    <section class="source-strip" aria-label="Capture source">
+      <div class="source-info">
+        <span class="source-icon" aria-hidden="true">HAR</span>
+        <div>
+          <h1 id="capture-name"></h1>
+          <p id="source-note"></p>
+        </div>
+      </div>
+      <div class="source-actions">
+        <button id="demo" class="text-button">Synthetic example</button
+        ><button id="recorded" class="text-button">Recorded capture</button
+        ><label class="primary file-button" for="file"
+          >Open HAR<input
+            id="file"
+            type="file"
+            accept=".har,.json,application/json"
+        /></label>
+        <div class="export-control">
+          <button id="export" class="secondary" aria-describedby="export-note">
+            Export summary</button
+          ><span id="export-note">Hosts and paths included</span>
+        </div>
+      </div>
+    </section>
+    <div id="error" role="alert"></div>
+    <section class="workbench" aria-label="Request analysis">
+      <div
+        id="stats"
+        class="capture-summary"
+        aria-label="Whole capture summary"
+      ></div>
+      <div class="toolbar">
+        <label class="search"
+          ><span class="sr-only">Filter path or host</span
+          ><input
+            id="search"
+            type="search"
+            placeholder="Filter path or host"
+            aria-label="Filter path or host" /></label
+        ><label class="sr-only" for="category">Request type</label
+        ><select id="category">
+          <option value="all">All requests</option>
+          <option value="errors">Failed requests</option>
+          <option value="data">Fetch / data</option>
+          <option value="script">JavaScript</option>
+          <option value="image">Images</option>
+          <option value="style">Stylesheets</option>
+          <option value="font">Fonts</option>
+          <option value="document">Documents</option>
+          <option value="other">Other</option></select
+        ><label class="sr-only" for="sort">Sort order</label
+        ><select id="sort">
+          <option value="start">Start time</option>
+          <option value="duration">Slowest first</option>
+          <option value="bytes">Largest first</option></select
+        ><button id="reset-view" class="text-button">Reset view</button
+        ><span id="result-count" aria-live="polite"></span>
+      </div>
+      <div
+        id="insights"
+        class="outlier-controls"
+        role="group"
+        aria-label="Inspect capture outliers"
+      ></div>
+      <div class="workspace">
+        <div class="request-pane">
+          <p class="scroll-hint">Scroll table sideways for timing →</p>
+          <div class="request-scroll">
+            <div class="table-head">
+              <span>Request / status</span><span>Transfer</span
+              ><span class="timeline-header"
+                ><span>Duration</span
+                ><span
+                  class="waterfall-axis"
+                  aria-label="Capture-relative waterfall scale"
+                  ><span>0</span><span id="timeline-mid"></span
+                  ><span id="timeline-end"></span></span
+              ></span>
+            </div>
+            <div id="requests"></div>
+          </div>
+          <nav class="pagination" aria-label="Request pages">
+            <span id="page-status" aria-live="polite"></span
+            ><button id="previous-page" class="secondary">Previous</button
+            ><button id="next-page" class="secondary">Next</button>
+          </nav>
+        </div>
+        <aside id="detail" aria-label="Request details" tabindex="-1"></aside>
+      </div>
+      <div class="legend">
+        <span><i class="data"></i>Data</span
+        ><span><i class="script"></i>Script</span
+        ><span><i class="image"></i>Image</span
+        ><span><i class="style"></i>Style</span
+        ><span><i class="font"></i>Font</span
+        ><span><i class="document"></i>Document</span
+        ><span><i class="other"></i>Other</span
+        ><span class="timeline-note"
+          >Waterfall begins at the first request, not navigation start.</span
+        >
+      </div>
+    </section>
+    <div id="warnings" class="warnings"></div>
+    <footer>
+      <details>
+        <summary>About this analysis</summary>
+        <p>
+          p95 uses nearest rank. Transfer uses the browser’s transfer size when
+          available, otherwise encoded body size. Unknown sizes are excluded.
+          TLS is part of connect time, never added twice. Capture span is not
+          page load time.
+        </p>
+        <p>
+          Files stay in memory in this tab. The summary omits headers, cookies,
+          bodies, query strings and fragments. Hostnames and paths remain;
+          review them before sharing.
+        </p>
+      </details>
+      <span>Up to 25 MB / 20,000 requests</span
+      ><a href="https://github.com/Miiduoa/tracefold#readme">Documentation</a>
+    </footer>
+  </main>`;
 function draw() {
   const s = summarize(capture.rows);
   document.querySelector("#error")!.textContent = error;
-  document.querySelector("#stats")!.innerHTML = [
-    ["Requests", String(s.count), `${s.peak} peak concurrent`],
-    [
-      "Transferred",
-      size(s.bytes),
-      s.unknownSizes
-        ? `${s.unknownSizes} unknown sizes excluded`
-        : "Known transfer / encoded body",
-    ],
-    ["p95 duration", ms(s.p95), "95% of requests finish within"],
-    ["Failed", String(s.errors), "HTTP 4xx / 5xx or status 0"],
-  ]
-    .map(
-      ([label, value, note]) =>
-        `<div class="stat"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`,
-    )
-    .join("");
+  document.querySelector("#timeline-end")!.textContent = ms(s.span);
+  document.querySelector("#timeline-mid")!.textContent = ms(s.span / 2);
+  document.querySelector("#stats")!.innerHTML =
+    `<span class="summary-scope">Whole capture</span><span><strong>${s.count}</strong> requests</span><span title="${s.unknownSizes} unknown sizes excluded">Transfer <strong>${size(s.bytes)}</strong>${s.unknownSizes ? ` · ${s.unknownSizes} unknown` : ""}</span><span>p95 <strong>${ms(s.p95)}</strong></span><span>Peak concurrent <strong>${s.peak}</strong></span><span class="${s.errors ? "has-errors" : ""}"><strong>${s.errors}</strong> failed</span>`;
   document.querySelector("#capture-name")!.innerHTML =
-    `${esc(filename)} ${example ? `<span class="badge">${example === "synthetic" ? "SYNTHETIC EXAMPLE" : "RECORDED EXAMPLE"}</span>` : ""}`;
+    `${esc(filename)} <span class="badge ${example ? "" : "file-source"}">${example === "synthetic" ? "Synthetic example" : example === "recorded" ? "Recorded example" : "Local file"}</span>`;
+  document.querySelector("#source-note")!.textContent =
+    example === "synthetic"
+      ? "Generated requests for exploring slow responses, large transfers and failures."
+      : example === "recorded"
+        ? "Recorded from the public portfolio in Chromium. Timing warnings are retained."
+        : "Opened locally. The source file is not modified or stored by this page.";
+  for (const [id, active] of [
+    ["demo", example === "synthetic"],
+    ["recorded", example === "recorded"],
+  ] as const)
+    document
+      .querySelector(`#${id}`)!
+      .setAttribute("aria-pressed", String(active));
   const slow = [...capture.rows].sort((a, b) => b.duration - a.duration)[0];
   const heavy = [...capture.rows]
     .filter((r) => r.bytes !== null)
     .sort((a, b) => (b.bytes ?? 0) - (a.bytes ?? 0))[0];
   document.querySelector("#insights")!.innerHTML =
-    `<div class="insight"><span>01</span><p><strong>${esc(slow.path)}</strong> has the longest request duration: ${ms(slow.duration)}. Server wait accounts for ${ms(slow.wait)}.</p></div>${heavy ? `<div class="insight"><span>02</span><p><strong>${esc(heavy.path)}</strong> is the largest known transfer at ${size(heavy.bytes)}.</p></div>` : ""}<div class="insight"><span>03</span><p>${s.errors ? `${s.errors} request${s.errors === 1 ? "" : "s"} failed. Filter failed requests to inspect the status and timing.` : "No HTTP errors or status-0 requests in this capture."}</p></div>${capture.warnings.length ? `<details><summary>${capture.warnings.length} timing warning(s)</summary><p>${capture.warnings.slice(0, 30).map(esc).join("<br>")}</p></details>` : ""}`;
+    `<span class="outlier-label">Inspect</span><button id="inspect-slow" class="outlier" title="${esc(slow.path)}"><span>Longest</span><strong>${ms(slow.duration)}</strong><span class="outlier-path">${esc(slow.path)}</span><span aria-hidden="true">↗</span></button>${heavy ? `<button id="inspect-heavy" class="outlier" title="${esc(heavy.path)}"><span>Largest</span><strong>${size(heavy.bytes)}</strong><span class="outlier-path">${esc(heavy.path)}</span><span aria-hidden="true">↗</span></button>` : ""}<button id="inspect-failed" class="outlier failure" ${s.errors ? "" : "disabled"}>Failed <strong>${s.errors}</strong></button>`;
+  document
+    .querySelector("#inspect-slow")!
+    .addEventListener("click", () => inspectOutlier(slow.id, "duration"));
+  document
+    .querySelector("#inspect-heavy")
+    ?.addEventListener("click", () => inspectOutlier(heavy.id, "bytes"));
+  document.querySelector("#inspect-failed")!.addEventListener("click", () => {
+    setView("", "errors", "start");
+    selected = capture.rows
+      .filter((r) => r.status === 0 || r.status >= 400)
+      .sort((a, b) => a.start - b.start)[0].id;
+    drawRows();
+  });
+  document.querySelector("#warnings")!.innerHTML = capture.warnings.length
+    ? `<details><summary>${capture.warnings.length} timing warning${capture.warnings.length === 1 ? "" : "s"} in this capture</summary><p>${capture.warnings.slice(0, 30).map(esc).join("<br>")}</p></details>`
+    : "";
   drawRows();
 }
 function drawRows() {
@@ -96,7 +233,7 @@ function drawRows() {
         : a.start - b.start,
   );
   document.querySelector("#result-count")!.textContent =
-    `${rows.length} / ${capture.rows.length}`;
+    `${rows.length} / ${capture.rows.length} requests`;
   const current = requestPage(rows, pageIndex);
   pageIndex = current.page;
   document.querySelector("#page-status")!.textContent =
@@ -118,17 +255,64 @@ function drawRows() {
     b.addEventListener("click", () => {
       selected = Number(b.dataset.id);
       drawRows();
+      revealDetail();
     }),
   );
   if (focusedId !== undefined)
     document
       .querySelector<HTMLButtonElement>(`[data-id="${Number(focusedId)}"]`)
       ?.focus({ preventScroll: true });
+  for (const [id, active] of [
+    ["inspect-slow", !query && category === "all" && sort === "duration"],
+    ["inspect-heavy", !query && category === "all" && sort === "bytes"],
+    ["inspect-failed", !query && category === "errors"],
+  ] as const)
+    document
+      .querySelector(`#${id}`)
+      ?.setAttribute("aria-pressed", String(active));
+  (document.querySelector("#reset-view") as HTMLButtonElement).disabled =
+    !query && category === "all" && sort === "start";
   const row = current.rows.find((r) => r.id === selected);
   document.querySelector("#detail")!.innerHTML = row
     ? detail(row)
-    : '<div class="detail-empty"><span class="eyebrow">REQUEST DETAIL</span><h3>Select a request</h3><p>Inspect timing phases and response details.</p></div>';
+    : '<div class="detail-empty"><h2>No selection in this view</h2><p>Choose a visible request to inspect its timing phases and response details.</p></div>';
+  document.querySelector("#back-to-list")?.addEventListener("click", () => {
+    const button = document.querySelector<HTMLButtonElement>(
+      `.request[data-id="${selected}"]`,
+    );
+    button?.focus({ preventScroll: true });
+    button?.scrollIntoView({ block: "center" });
+  });
 }
+function revealDetail() {
+  if (window.matchMedia("(max-width: 900px)").matches) {
+    document
+      .querySelector<HTMLElement>("#detail")!
+      .focus({ preventScroll: true });
+    document.querySelector("#detail")!.scrollIntoView({ block: "start" });
+  }
+}
+function setView(nextQuery: string, nextCategory: string, nextSort: string) {
+  query = nextQuery;
+  category = nextCategory;
+  sort = nextSort;
+  pageIndex = 0;
+  (document.querySelector("#search") as HTMLInputElement).value = query;
+  (document.querySelector("#category") as HTMLSelectElement).value = category;
+  (document.querySelector("#sort") as HTMLSelectElement).value = sort;
+  document.querySelector(".request-scroll")!.scrollTop = 0;
+}
+function inspectOutlier(id: number, order: string) {
+  setView("", "all", order);
+  selected = id;
+  drawRows();
+  document.querySelector(".request-scroll")!.scrollTop = 0;
+  revealDetail();
+}
+document.querySelector("#reset-view")!.addEventListener("click", () => {
+  setView("", "all", "start");
+  drawRows();
+});
 for (const [selector, delta] of [
   ["#previous-page", -1],
   ["#next-page", 1],
@@ -136,7 +320,7 @@ for (const [selector, delta] of [
   document.querySelector(selector)!.addEventListener("click", () => {
     pageIndex += delta;
     drawRows();
-    document.querySelector("#requests")!.scrollTop = 0;
+    document.querySelector(".request-scroll")!.scrollTop = 0;
   });
 }
 function detail(r: RequestRow) {
@@ -149,22 +333,25 @@ function detail(r: RequestRow) {
     ["wait", "Server wait"],
     ["receive", "Receive"],
   ];
-  return `<span class="eyebrow">REQUEST DETAIL <span class="detail-index">#${String(r.id + 1).padStart(2, "0")}</span></span><h3>${esc(r.path)}</h3><p class="detail-host">${esc(r.host)}</p><div class="detail-total">${ms(r.duration)}<span>elapsed</span></div><div class="detail-meta"><span>${esc(r.method)}</span><span>HTTP ${r.status || "unavailable"}</span><span>${size(r.bytes)}</span></div><h4>TIMING BREAKDOWN</h4>${phases.map(([k, label]) => `<div class="phase ${k === "ssl" ? "subset" : ""}"><div><span>${label}</span><strong>${ms(r.timings[k])}</strong></div><div class="phase-track"><i style="width:${Math.min(100, ((r.timings[k] ?? 0) / Math.max(1, r.duration)) * 100)}%"></i></div></div>`).join("")}<p class="detail-foot">Starts ${ms(r.start)} into the capture.<br>Unknown phases were not recorded.</p>`;
+  return `<div class="detail-heading"><h2>Request details</h2><span class="detail-index">#${r.id + 1}</span></div><button id="back-to-list" class="text-button">← Back to requests</button><h3>${esc(r.path)}</h3><p class="detail-host">${esc(r.host)}</p><div class="detail-total">${ms(r.duration)}<span>elapsed</span></div><div class="detail-meta"><span>${esc(r.method)}</span><span>HTTP ${r.status || "unavailable"}</span><span>${size(r.bytes)}</span></div><h4>Timing phases</h4>${phases.map(([k, label]) => `<div class="phase ${k === "ssl" ? "subset" : ""}"><div><span>${label}</span><strong>${ms(r.timings[k])}</strong></div><div class="phase-track"><i style="width:${Math.min(100, ((r.timings[k] ?? 0) / Math.max(1, r.duration)) * 100)}%"></i></div></div>`).join("")}<p class="detail-foot">Starts ${ms(r.start)} into the capture.<br>Unknown phases were not recorded.</p>`;
 }
 document.querySelector("#search")!.addEventListener("input", (e) => {
   query = (e.target as HTMLInputElement).value;
   pageIndex = 0;
   drawRows();
+  document.querySelector(".request-scroll")!.scrollTop = 0;
 });
 document.querySelector("#category")!.addEventListener("change", (e) => {
   category = (e.target as HTMLSelectElement).value;
   pageIndex = 0;
   drawRows();
+  document.querySelector(".request-scroll")!.scrollTop = 0;
 });
 document.querySelector("#sort")!.addEventListener("change", (e) => {
   sort = (e.target as HTMLSelectElement).value;
   pageIndex = 0;
   drawRows();
+  document.querySelector(".request-scroll")!.scrollTop = 0;
 });
 function reset(next: Capture, name: string, source: typeof example) {
   capture = next;

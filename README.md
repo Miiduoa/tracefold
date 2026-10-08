@@ -4,11 +4,15 @@ A browser-based HAR inspector for finding slow, heavy, and failed requests. Open
 
 [Open the workbench](https://miiduoa.github.io/tracefold/) · [Design notes](docs/design.md) · [繁體中文](docs/README.zh-TW.md)
 
-![Tracefold showing a synthetic network capture](docs/workbench.png)
+![Tracefold showing the longest request in its synthetic capture](docs/workbench.png)
+
+[Mobile layout](docs/mobile.png)
 
 ## Try it
 
-The workbench opens with a **synthetic 24-request capture**. Select **Failed requests** to find the 503 response, or sort by **Slowest first** to inspect `/api/activity`. Open your own `.har` file with the import control. The current capture remains intact if an import fails. **Recorded capture** opens a real, reduced recording of the public portfolio; its two timing consistency warnings are documented in the [case study](docs/cases/portfolio.md).
+The workbench opens with a **synthetic 24-request capture**. Use **Longest**, **Largest**, or **Failed** above the request table to inspect a capture outlier. These shortcuts reset the current filters and select a matching request; the sort and filter controls show the resulting view. Open your own `.har` file with the import control. The current capture remains intact if an import fails. **Recorded capture** opens a real, reduced recording of the public portfolio; its two timing consistency warnings are documented in the [case study](docs/cases/portfolio.md).
+
+The waterfall axis always uses the full capture span, even when the list is filtered. On narrow screens, select a row to jump to its detail panel; **Back to requests** restores focus to that row.
 
 Files stay in memory in the current tab. There is no backend, analytics script, external font, or browser storage. Closing the tab clears the capture. Hosting providers still receive normal requests for the application itself.
 
@@ -28,14 +32,14 @@ npm run build  # TypeScript check + production bundle
 
 ## What it measures
 
-| Measure | Definition |
-|---|---|
-| Duration | HAR entry `time`; a phase mismatch produces a warning |
-| p95 | Nearest-rank percentile of request durations |
-| Transfer | `_transferSize` when provided, otherwise encoded `bodySize`; unknown sizes stay unknown |
-| Peak concurrent | Sweep of request start/end events; touching endpoints do not overlap |
-| Failures | HTTP 4xx / 5xx and status 0 |
-| Timeline | Relative to the earliest request in the capture, across all recorded pages |
+| Measure         | Definition                                                                              |
+| --------------- | --------------------------------------------------------------------------------------- |
+| Duration        | HAR entry `time`; a phase mismatch produces a warning                                   |
+| p95             | Nearest-rank percentile of request durations                                            |
+| Transfer        | `_transferSize` when provided, otherwise encoded `bodySize`; unknown sizes stay unknown |
+| Peak concurrent | Sweep of request start/end events; touching endpoints do not overlap                    |
+| Failures        | HTTP 4xx / 5xx and status 0                                                             |
+| Timeline        | Relative to the earliest request in the capture, across all recorded pages              |
 
 TLS is included in connect time in HAR. It is displayed as a subset, never added twice. Capture span is **not** page load time, and server wait is **not** a CPU profile. A slow request can be an intentionally long-lived connection.
 

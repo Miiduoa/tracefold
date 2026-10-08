@@ -28,7 +28,9 @@ A cached zero-byte response is a measured zero. HAR's `-1` means unavailable. Un
 
 ## Rendering and scope
 
-A fixed-height scrollable request list renders at most 200 rows per page. All matches are filtered and sorted before slicing; page state resets on import, search, category and sort changes. A live range and native Previous/Next buttons expose the full result set. Filtering leaves capture-level statistics unchanged; the result count makes the filtered subset explicit. Resource categories are inferred from MIME types. Multi-page captures share a single timeline.
+A fixed-height scrollable request list renders at most 200 rows per page. All matches are filtered and sorted before slicing; page state resets on import, search, category and sort changes. A live range and native Previous/Next buttons expose the full result set. Filtering leaves capture-level statistics unchanged; the result count makes the filtered subset explicit. Outlier shortcuts clear the current filters, use the full capture to sort or filter, reset to page one, and select a request in that displayed order. The waterfall scale shares the row geometry and stays relative to the whole capture when filtering. On narrow screens, request selection moves to details and the return action restores focus to that row.
+
+Resource categories are inferred from MIME types. Multi-page captures share a single timeline.
 
 A worker remains an option for large-file parsing. The list now bounds DOM work through pagination; parsing and filtering still run on the main thread. The [stress experiment](cases/stress.md) records three local automation measurements per version and their limitations.
 
@@ -36,6 +38,6 @@ A worker remains an option for large-file parsing. The list now bounds DOM work 
 
 - Core tests: malformed entries, empty captures, capture limit, invalid schemes, timing mismatch, unknown/zero bytes, TLS accounting, unsorted entries, zero-length/touching/overlapping intervals, percentile definition and export reduction.
 - Local Chromium: filter to one HTTP 503; select details; search to empty state; duration ordering; download JSON; import one valid request; reject invalid JSON while retaining the previous capture.
-- Desktop and 390 × 844 layout inspected. No horizontal overflow on the mobile viewport; no console errors during the workbench flow.
+- Desktop and 390 × 844 layout inspected. The compact inspector also received a 201-row paging/outlier check and a 205-row reverse-ordered failure case; downloaded summaries retained the full capture. Invalid import retention and stale import versus example selection were checked. No horizontal overflow on the mobile viewport; no console errors during the workbench flow.
 
 Tests are reproducible with `npm test`. Browser checks above describe a manual automation pass, not a cross-browser CI suite.

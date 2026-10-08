@@ -7,10 +7,12 @@
 ## 操作路徑
 
 1. 開啟工作台，先用標示為 synthetic 的 24 筆範例。
-2. 選「Failed requests」，點開 503 請求查看時間分解。
-3. 改成「Slowest first」，比較等待伺服器回應與接收資料的時間。
+2. 按列表上方的「Failed」直接篩出並選取失敗請求。
+3. 按「Longest」或「Largest」排序並選取對應請求；時間軸的刻度仍使用整份紀錄。
 4. 匯入自己的 HAR；資料在瀏覽器記憶體處理。
 5. 匯出摘要。摘要不保留 headers、cookie、body 與 query string，但 hostname、path 仍需自行檢查。
+
+手機點選請求會直接跳到時間分解，可用「Back to requests」回到原本那一列。
 
 ## 可以檢查的技術內容
 
